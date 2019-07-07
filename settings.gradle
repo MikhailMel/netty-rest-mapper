@@ -1,0 +1,3 @@
+rootProject.name = 'netty-rest-mapper'
+include 'core'
+include 'example'
