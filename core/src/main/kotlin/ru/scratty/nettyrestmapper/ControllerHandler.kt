@@ -2,7 +2,6 @@ package ru.scratty.nettyrestmapper
 
 import io.netty.handler.codec.http.HttpMethod
 import org.slf4j.LoggerFactory
-import ru.scratty.annotation.*
 import ru.scratty.nettyrestmapper.annotation.*
 import ru.scratty.nettyrestmapper.exception.NumAnnotationsException
 import java.lang.reflect.Method

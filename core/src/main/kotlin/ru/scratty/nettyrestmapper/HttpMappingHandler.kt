@@ -9,7 +9,7 @@ class HttpMappingHandler(
     private val httpMethodsHandlers: List<HttpMethodHandler>
 ) : ChannelInboundHandlerAdapter() {
 
-    override fun channelRead(ctx: ChannelHandlerContext?, msg: Any?) {
+    override fun channelRead(ctx: ChannelHandlerContext, msg: Any) {
         if (msg !is HttpRequest) {
             return
         }

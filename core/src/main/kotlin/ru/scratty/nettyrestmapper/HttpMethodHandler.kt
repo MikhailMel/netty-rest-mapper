@@ -1,6 +1,7 @@
 package ru.scratty.nettyrestmapper
 
 import io.netty.handler.codec.http.HttpMethod
+import org.slf4j.LoggerFactory
 import java.lang.reflect.Method
 
 class HttpMethodHandler(
@@ -14,15 +15,21 @@ class HttpMethodHandler(
 
     companion object {
         private const val URL_QUERY_REGEX = "(?:\\?.*?)?$"
+
+        private val log = LoggerFactory.getLogger(HttpMethodHandler::class.java)
     }
 
     fun isPathMatched(path: String): Boolean = pathPattern.matches(path)
 
     fun invoke(args: Array<*>) {
         try {
-            method.invoke(handler, args)
+            if (args.isEmpty()) {
+                method.invoke(handler)
+            } else {
+                method.invoke(handler, args)
+            }
         } catch (e: Exception) {
-            e.printStackTrace()
+            log.error(e.message, e)
         }
     }
 
