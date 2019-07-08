@@ -2,6 +2,8 @@ package ru.scratty.nettyrestmapper
 
 import io.netty.handler.codec.http.HttpMethod
 import org.slf4j.LoggerFactory
+import ru.scratty.nettyrestmapper.response.Response
+import ru.scratty.nettyrestmapper.response.ResponseStatus
 import java.lang.reflect.Method
 
 class HttpMethodHandler(
@@ -21,16 +23,24 @@ class HttpMethodHandler(
 
     fun isPathMatched(path: String): Boolean = pathPattern.matches(path)
 
-    fun invoke(args: Array<*>) {
+    fun invoke(args: Array<*>): Response {
         try {
-            if (args.isEmpty()) {
+            val result = if (args.isEmpty()) {
                 method.invoke(handler)
             } else {
                 method.invoke(handler, args)
             }
+
+            return if (method.returnType == Response::class.java) {
+                result as Response
+            } else {
+                Response(ResponseStatus.OK)
+            }
         } catch (e: Exception) {
             log.error(e.message, e)
         }
+
+        return Response(ResponseStatus.INTERNAL_SERVER_ERROR)
     }
 
     override fun toString(): String {

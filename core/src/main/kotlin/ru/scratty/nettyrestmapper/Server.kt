@@ -25,7 +25,7 @@ class Server(
 
     private lateinit var channelFuture: ChannelFuture
 
-    constructor(port: Int, controllerHandler: ControllerHandler): this(port, controllerHandler.httpMethodsHandler)
+    constructor(port: Int, controllerHandler: ControllerHandler): this(port, controllerHandler.httpMethodsHandlers)
 
     fun startServer() {
         val corsConfig = CorsConfigBuilder.forAnyOrigin()

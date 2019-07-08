@@ -22,7 +22,7 @@ class ControllerHandler(
         private val log = LoggerFactory.getLogger(ControllerHandler::class.java)
     }
 
-    val httpMethodsHandler: List<HttpMethodHandler> = createHttpMethodsHandlers()
+    val httpMethodsHandlers: List<HttpMethodHandler> = createHttpMethodsHandlers()
 
     private fun createHttpMethodsHandlers(): List<HttpMethodHandler> {
         log.debug("Parsing controllers started (${controllers.size} controllers)")
