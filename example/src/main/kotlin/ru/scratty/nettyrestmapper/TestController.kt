@@ -4,6 +4,7 @@ import ru.scratty.nettyrestmapper.annotation.GetMapping
 import ru.scratty.nettyrestmapper.annotation.PathParam
 import ru.scratty.nettyrestmapper.annotation.PostMapping
 import ru.scratty.nettyrestmapper.annotation.RestController
+import ru.scratty.nettyrestmapper.response.OkResponse
 import ru.scratty.nettyrestmapper.response.Response
 import ru.scratty.nettyrestmapper.response.ResponseStatus
 import java.util.concurrent.atomic.AtomicLong
@@ -20,10 +21,18 @@ class TestController {
         return Response(ResponseStatus.OK)
     }
 
-    @GetMapping("/gzip")
-    fun downloadGZip(): Response {
-        val content = javaClass.classLoader.getResourceAsStream("eznMiWJoLTo.jpg.gz")!!.readAllBytes()
-        return Response(ResponseStatus.OK, content).apply {
+    @GetMapping("/gzip/{filename}")
+    fun downloadGZip(
+        @PathParam("filename") filename: String
+    ): Response {
+        val file = if (filename.subSequence(filename.length - 3, filename.length) != ".gz") {
+            "$filename.gz"
+        } else {
+            filename
+        }
+
+        val content = javaClass.classLoader.getResourceAsStream(file)!!.readAllBytes()
+        return OkResponse(content).apply {
             contentType = "application/gzip"
         }
     }
@@ -31,7 +40,7 @@ class TestController {
     @GetMapping("/{id}")
     fun getById(
         @PathParam("id") id: Int
-    ) = Response(ResponseStatus.OK, id.toString())
+    ) = OkResponse(id)
 
     @GetMapping("/device/{status}/")
     fun getDeviceByStatus(

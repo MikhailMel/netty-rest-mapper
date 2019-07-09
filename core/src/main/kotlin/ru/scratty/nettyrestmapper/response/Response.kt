@@ -6,7 +6,7 @@ import io.netty.handler.codec.http.*
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 
-class Response private constructor(
+open class Response private constructor(
     private val httpResponseStatus: HttpResponseStatus,
     private val content: ByteBuf
 ) {

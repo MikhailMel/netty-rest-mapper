@@ -39,7 +39,7 @@ class HttpMethodHandler(
                 method.invoke(handler, *args)
             }
 
-            return if (method.returnType == Response::class.java) {
+            return if (method.returnType == Response::class.java || method.returnType.superclass == Response::class.java) {
                 result as Response
             } else {
                 Response(ResponseStatus.OK)
