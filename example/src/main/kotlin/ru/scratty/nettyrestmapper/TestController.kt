@@ -1,6 +1,7 @@
 package ru.scratty.nettyrestmapper
 
 import ru.scratty.nettyrestmapper.annotation.GetMapping
+import ru.scratty.nettyrestmapper.annotation.PathParam
 import ru.scratty.nettyrestmapper.annotation.PostMapping
 import ru.scratty.nettyrestmapper.annotation.RestController
 import ru.scratty.nettyrestmapper.response.Response
@@ -25,6 +26,30 @@ class TestController {
         return Response(ResponseStatus.OK, content).apply {
             contentType = "application/gzip"
         }
+    }
+
+    @GetMapping("/{id}")
+    fun getById(
+        @PathParam("id") id: Int
+    ) = Response(ResponseStatus.OK, id.toString())
+
+    @GetMapping("/device/{status}/")
+    fun getDeviceByStatus(
+        @PathParam("status") status: Boolean
+    ) = Response(ResponseStatus.OK, status.toString())
+
+    @GetMapping("/device/{city}/{status}")
+    fun getDeviceByCityAndStatus(
+        @PathParam("city") city: String,
+        @PathParam("status") status: Boolean
+    ) = Response(ResponseStatus.OK, "$city $status")
+
+    @GetMapping("/place/{category}/{city}")
+    fun getPlaceByCategoryAndCity(
+        @PathParam("category") category: String,
+        @PathParam("city") city: String
+    ) = Response(ResponseStatus.OK, "{\"category\":\"$category\", \"city\":\"$city\"}").apply {
+        contentType = "application/json"
     }
 
     @PostMapping("/post")

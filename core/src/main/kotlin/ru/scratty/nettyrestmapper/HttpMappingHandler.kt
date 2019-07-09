@@ -6,6 +6,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.handler.codec.http.*
 import org.slf4j.LoggerFactory
 import ru.scratty.nettyrestmapper.exception.FewMethodsHandleException
+import java.nio.charset.Charset
 
 
 class HttpMappingHandler(
@@ -34,7 +35,9 @@ class HttpMappingHandler(
             matchedMethodsHandlers.isEmpty() -> DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND)
             else -> {
                 val methodHandler = matchedMethodsHandlers[0]
-                methodHandler.invoke(emptyArray<Any>()).createFullHttpResponse()
+                methodHandler
+                    .invoke(getArgsForInvoke(methodHandler, request))
+                    .createFullHttpResponse()
             }
         }
 
@@ -50,4 +53,48 @@ class HttpMappingHandler(
         val channelFuture = ctx.writeAndFlush(DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR))
         channelFuture.addListener(ChannelFutureListener.CLOSE)
     }
+
+    private fun getArgsForInvoke(methodHandler: HttpMethodHandler, request: FullHttpRequest): Array<Any?>? {
+        val pathParameterValues = hashMapOf<String, String>()
+        val matchedGroupValues = methodHandler.pathPattern.findAll(request.uri())
+            .flatMap { it.groupValues.asSequence() }
+            .toList()
+
+        methodHandler.pathParams.forEachIndexed { i, v ->
+            pathParameterValues[v] = matchedGroupValues[i + 1]
+        }
+
+        val parameters = arrayOfNulls<Any?>(methodHandler.parameters.size)
+
+        methodHandler.parameters.forEachIndexed { i, parameter ->
+            val value = pathParameterValues[parameter.name]
+
+            if (value != null && value.isNotEmpty()) {
+                parameters[i] = when {
+                    parameter.type == String::class.java -> value
+                    parameter.type.isPrimitive -> parsePrimitive(value, parameter.type)
+                    else -> {
+                        //TODO parse objects
+                    }
+                }
+            }
+        }
+
+        log.debug(parameters.toList().toString())
+
+        return parameters
+    }
+
+    private fun parsePrimitive(value: String, type: Class<*>): Any? =
+        when(type) {
+            Byte::class.java -> value.toByte()
+            Short::class.java -> value.toShort()
+            Int::class.java -> value.toInt()
+            Long::class.java -> value.toLong()
+            Char::class.java -> value[0]
+            Float::class.java -> value.toFloat()
+            Double::class.java -> value.toDouble()
+            Boolean::class.java -> value.toBoolean()
+            else -> null
+        }
 }

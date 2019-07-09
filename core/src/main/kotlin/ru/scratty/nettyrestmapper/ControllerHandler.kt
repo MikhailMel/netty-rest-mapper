@@ -4,7 +4,9 @@ import io.netty.handler.codec.http.HttpMethod
 import org.slf4j.LoggerFactory
 import ru.scratty.nettyrestmapper.annotation.*
 import ru.scratty.nettyrestmapper.exception.NumAnnotationsException
+import ru.scratty.nettyrestmapper.exception.ParameterException
 import java.lang.reflect.Method
+import kotlin.reflect.KParameter
 
 class ControllerHandler(
     private val controllers: List<Any>
@@ -18,6 +20,8 @@ class ControllerHandler(
             PatchMapping::class.java to HttpMethod.PATCH,
             DeleteMapping::class.java to HttpMethod.DELETE
         )
+
+        private val URL_PARAMS_REGEX = Regex("\\{(\\w*?)}")
 
         private val log = LoggerFactory.getLogger(ControllerHandler::class.java)
     }
@@ -39,12 +43,39 @@ class ControllerHandler(
                 val httpMethod = ANNOTATIONS_MAP[annotation.annotationClass.java]
                     ?: throw Exception("Not found HttpMethod for '${annotation.javaClass.name}' annotation")
 
-                val path = annotation.javaClass.getMethod("path").invoke(annotation)
+                val path = rootPath + annotation.javaClass.getMethod("path").invoke(annotation)
+
+                val pathParamsNames = URL_PARAMS_REGEX.findAll(path)
+                    .map { it.groupValues[1] }
+                    .toList()
+                val pathParamsNamesInMethod = arrayListOf<String>()
+
+                val parameters = arrayListOf<MethodParameter>()
+
+                for (parameter in method.parameters) {
+                    val pathParamAnnotation = parameter.getAnnotation(PathParam::class.java)
+
+                    pathParamsNamesInMethod.add(pathParamAnnotation.name)
+
+                    if (!pathParamsNames.contains(pathParamAnnotation.name)) {
+                        throw ParameterException("Parameter '${pathParamAnnotation.name}' isn't specified in the path '$path'")
+                    }
+
+                    parameters.add(MethodParameter(pathParamAnnotation.name, parameter.type))
+                }
+
+                for (pathParam in pathParamsNames) {
+                    if (!pathParamsNamesInMethod.contains(pathParam)) {
+                        throw ParameterException("Parameter '$pathParam' isn't specified in the method '${method.name}' with path '$path'")
+                    }
+                }
 
                 method.isAccessible = true
                 val methodHandler = HttpMethodHandler(
                     httpMethod,
-                    rootPath + path,
+                    path,
+                    pathParamsNames,
+                    parameters,
                     method,
                     controllerInstance
                 )
