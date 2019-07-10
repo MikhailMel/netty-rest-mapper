@@ -13,12 +13,10 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
+    implementation(kotlin("reflect"))
 
     implementation("io.netty", "netty-all", "4.1.37.Final")
 
-//    implementation("org.apache.logging.log4j", "log4j-api", "2.12.0")
-//    implementation("org.apache.logging.log4j", "log4j-core", "2.12.0")
-//    implementation("org.apache.logging.log4j", "log4j-slf4j-impl", "2.12.0")
     implementation("ch.qos.logback", "logback-classic", "1.2.3")
 }
 

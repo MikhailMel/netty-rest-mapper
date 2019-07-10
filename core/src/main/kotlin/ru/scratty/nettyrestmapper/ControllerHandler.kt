@@ -5,8 +5,12 @@ import org.slf4j.LoggerFactory
 import ru.scratty.nettyrestmapper.annotation.*
 import ru.scratty.nettyrestmapper.exception.NumAnnotationsException
 import ru.scratty.nettyrestmapper.exception.ParameterException
-import java.lang.reflect.Method
-import kotlin.reflect.KParameter
+import kotlin.reflect.KFunction
+import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.functions
+import kotlin.reflect.jvm.isAccessible
+import kotlin.reflect.jvm.javaMethod
+import kotlin.reflect.jvm.jvmErasure
 
 class ControllerHandler(
     private val controllers: List<Any>
@@ -14,11 +18,11 @@ class ControllerHandler(
 
     companion object {
         private val ANNOTATIONS_MAP = mapOf(
-            GetMapping::class.java to HttpMethod.GET,
-            PostMapping::class.java to HttpMethod.POST,
-            PutMapping::class.java to HttpMethod.PUT,
-            PatchMapping::class.java to HttpMethod.PATCH,
-            DeleteMapping::class.java to HttpMethod.DELETE
+            GetMapping::class to HttpMethod.GET,
+            PostMapping::class to HttpMethod.POST,
+            PutMapping::class to HttpMethod.PUT,
+            PatchMapping::class to HttpMethod.PATCH,
+            DeleteMapping::class to HttpMethod.DELETE
         )
 
         private val URL_PARAMS_REGEX = Regex("\\{(\\w*?)}")
@@ -29,18 +33,22 @@ class ControllerHandler(
     val httpMethodsHandlers: List<HttpMethodHandler> = createHttpMethodsHandlers()
 
     private fun createHttpMethodsHandlers(): List<HttpMethodHandler> {
+
         log.debug("Parsing controllers started (${controllers.size} controllers)")
 
         val list = arrayListOf<HttpMethodHandler>()
 
         for (controllerInstance in controllers) {
-            val controller = controllerInstance.javaClass
-            val restController = controller.getAnnotation(RestController::class.java) ?: continue
+            val controller = controllerInstance::class
+
+            val restController = controller.findAnnotation<RestController>() ?: continue
             val rootPath = restController.path
 
-            for (method in controller.methods) {
-                val annotation = findMappingAnnotation(method) ?: continue
-                val httpMethod = ANNOTATIONS_MAP[annotation.annotationClass.java]
+            for (function in controller.functions) {
+                function.javaMethod ?: continue
+
+                val annotation = findMappingAnnotation(function) ?: continue
+                val httpMethod = ANNOTATIONS_MAP[annotation.annotationClass]
                     ?: throw Exception("Not found HttpMethod for '${annotation.javaClass.name}' annotation")
 
                 val path = rootPath + annotation.javaClass.getMethod("path").invoke(annotation)
@@ -52,31 +60,35 @@ class ControllerHandler(
 
                 val parameters = arrayListOf<MethodParameter>()
 
-                for (parameter in method.parameters) {
-                    val pathParamAnnotation = parameter.getAnnotation(PathParam::class.java)
+                for (parameter in function.parameters) {
+                    val pathParamAnnotation = parameter.findAnnotation<PathParam>() ?: continue
+                    val pathParamName = if (pathParamAnnotation.name.isNotEmpty()) {
+                        pathParamAnnotation.name
+                    } else {
+                        parameter.name ?: ""
+                    }
+                    pathParamsNamesInMethod.add(pathParamName)
 
-                    pathParamsNamesInMethod.add(pathParamAnnotation.name)
-
-                    if (!pathParamsNames.contains(pathParamAnnotation.name)) {
-                        throw ParameterException("Parameter '${pathParamAnnotation.name}' isn't specified in the path '$path'")
+                    if (!pathParamsNames.contains(pathParamName)) {
+                        throw ParameterException("Parameter '$pathParamName' isn't specified in the path '$path'")
                     }
 
-                    parameters.add(MethodParameter(pathParamAnnotation.name, parameter.type))
+                    parameters.add(MethodParameter(pathParamName, parameter.type.jvmErasure.java))
                 }
 
                 for (pathParam in pathParamsNames) {
                     if (!pathParamsNamesInMethod.contains(pathParam)) {
-                        throw ParameterException("Parameter '$pathParam' isn't specified in the method '${method.name}' with path '$path'")
+                        throw ParameterException("Parameter '$pathParam' isn't specified in the function '${function.name}' with path '$path'")
                     }
                 }
 
-                method.isAccessible = true
+                function.isAccessible = true
                 val methodHandler = HttpMethodHandler(
                     httpMethod,
                     path,
                     pathParamsNames,
                     parameters,
-                    method,
+                    function.javaMethod!!,
                     controllerInstance
                 )
                 log.debug(methodHandler.toString())
@@ -89,15 +101,14 @@ class ControllerHandler(
         return list
     }
 
-    private fun findMappingAnnotation(method: Method): Annotation? {
-        val annotations = ANNOTATIONS_MAP.keys
-            .filter { method.isAnnotationPresent(it) }
-            .map { method.getAnnotation(it) }
+    private fun findMappingAnnotation(function: KFunction<*>): Annotation? {
+        val annotations = function.annotations
+            .filter { ANNOTATIONS_MAP.keys.contains(it.annotationClass) }
 
         return when (annotations.size) {
             1 -> annotations.first()
             0 -> null
-            else -> throw NumAnnotationsException("Multiple annotations for method '${method.name}'")
+            else -> throw NumAnnotationsException("Multiple annotations for function '${function.name}'")
         }
     }
 }

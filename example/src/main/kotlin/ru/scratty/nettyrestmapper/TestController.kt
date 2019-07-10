@@ -23,7 +23,7 @@ class TestController {
 
     @GetMapping("/gzip/{filename}")
     fun downloadGZip(
-        @PathParam("filename") filename: String
+        @PathParam filename: String
     ): Response {
         val file = if (filename.subSequence(filename.length - 3, filename.length) != ".gz") {
             "$filename.gz"
@@ -39,25 +39,25 @@ class TestController {
 
     @GetMapping("/{id}")
     fun getById(
-        @PathParam("id") id: Int
+        @PathParam id: Int
     ) = OkResponse(id)
 
     @GetMapping("/device/{status}/")
     fun getDeviceByStatus(
-        @PathParam("status") status: Boolean
+        @PathParam status: Boolean
     ) = Response(ResponseStatus.OK, status.toString())
 
     @GetMapping("/device/{city}/{status}")
     fun getDeviceByCityAndStatus(
-        @PathParam("city") city: String,
-        @PathParam("status") status: Boolean
+        @PathParam city: String,
+        @PathParam status: Boolean
     ) = Response(ResponseStatus.OK, "$city $status")
 
     @GetMapping("/place/{category}/{city}")
     fun getPlaceByCategoryAndCity(
-        @PathParam("category") category: String,
-        @PathParam("city") city: String
-    ) = Response(ResponseStatus.OK, "{\"category\":\"$category\", \"city\":\"$city\"}").apply {
+        @PathParam("category") cat: String,
+        @PathParam("city") c: String
+    ) = Response(ResponseStatus.OK, "{\"category\":\"$cat\", \"city\":\"$c\"}").apply {
         contentType = "application/json"
     }
 
