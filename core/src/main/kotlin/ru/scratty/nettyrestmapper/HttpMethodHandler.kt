@@ -9,15 +9,10 @@ import java.lang.reflect.Method
 class HttpMethodHandler(
     val httpMethod: HttpMethod,
     private val path: String,
-    val pathParams: List<String> = emptyList(),
-    val parameters: List<MethodParameter> = emptyList(),
+    val parameters: List<FunctionParameter> = emptyList(),
     private val method: Method,
     private val handler: Any
 ) {
-
-    val pathPattern: Regex = (path.removeSuffix("/")
-        .replaceFirst(URL_FORMAT_REGEX.toRegex(), URL_FORMAT_MATCH_REGEX)
-        .replace(URL_PARAM_REGEX.toRegex(), URL_PARAM_MATCH_REGEX) + URL_QUERY_STRING_REGEX).toRegex()
 
     companion object {
         private const val URL_FORMAT_REGEX = "(?:\\.\\{format})$"
@@ -28,6 +23,14 @@ class HttpMethodHandler(
 
         private val log = LoggerFactory.getLogger(HttpMethodHandler::class.java)
     }
+
+    val pathPattern: Regex = (path.removeSuffix("/")
+        .replaceFirst(URL_FORMAT_REGEX.toRegex(), URL_FORMAT_MATCH_REGEX)
+        .replace(URL_PARAM_REGEX.toRegex(), URL_PARAM_MATCH_REGEX) + URL_QUERY_STRING_REGEX).toRegex()
+
+    val pathParams: List<String> = parameters
+        .filter { it.parameterType == FunctionParameter.ParamType.PATH_PARAM }
+        .map { it.name }
 
     fun isPathMatched(path: String): Boolean = pathPattern.matches(path)
 

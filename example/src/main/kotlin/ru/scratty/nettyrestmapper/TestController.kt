@@ -1,9 +1,6 @@
 package ru.scratty.nettyrestmapper
 
-import ru.scratty.nettyrestmapper.annotation.GetMapping
-import ru.scratty.nettyrestmapper.annotation.PathParam
-import ru.scratty.nettyrestmapper.annotation.PostMapping
-import ru.scratty.nettyrestmapper.annotation.RestController
+import ru.scratty.nettyrestmapper.annotation.*
 import ru.scratty.nettyrestmapper.response.OkResponse
 import ru.scratty.nettyrestmapper.response.Response
 import ru.scratty.nettyrestmapper.response.ResponseStatus
@@ -65,4 +62,23 @@ class TestController {
     fun postHelloWorld(): Response = Response(ResponseStatus.OK, "{\"field\":\"value\"}").apply {
         contentType = "application/json"
     }
+
+    @GetMapping("/query/params")
+    fun testQueryParams(
+        @QueryParam num: Int,
+        @QueryParam word: String,
+        @QueryParam bool: Boolean
+    ) = OkResponse("$num $word $bool")
+
+    @GetMapping("/query/params/not-required")
+    fun testQueryParamsWithoutRequiredParams(
+        @QueryParam(required = false) num: Int?,
+        @QueryParam(required = false) word: String?
+    ) = OkResponse("$num $word")
+
+    @PostMapping("/query/params/default")
+    fun testQueryParamsWithDefaultParams(
+        @QueryParam(required = false, default = "1998") num: Int,
+        @QueryParam(required = false, default = "Hello world!") word: String
+    ) = OkResponse("$num $word")
 }

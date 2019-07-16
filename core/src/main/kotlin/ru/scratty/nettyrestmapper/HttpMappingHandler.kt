@@ -6,7 +6,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.handler.codec.http.*
 import org.slf4j.LoggerFactory
 import ru.scratty.nettyrestmapper.exception.FewMethodsHandleException
-import java.nio.charset.Charset
+import ru.scratty.nettyrestmapper.exception.ParameterException
 
 
 class HttpMappingHandler(
@@ -55,9 +55,11 @@ class HttpMappingHandler(
     }
 
     private fun getArgsForInvoke(methodHandler: HttpMethodHandler, request: FullHttpRequest): Array<Any?>? {
+        val queryStringDecoder = QueryStringDecoder(request.uri())
+
         val pathParameterValues = hashMapOf<String, String>()
         val matchedGroupValues = methodHandler.pathPattern.findAll(request.uri())
-            .flatMap { it.groupValues.asSequence() }
+            .flatMap { it.groupValues.toList().asSequence() }
             .toList()
 
         methodHandler.pathParams.forEachIndexed { i, v ->
@@ -67,16 +69,28 @@ class HttpMappingHandler(
         val parameters = arrayOfNulls<Any?>(methodHandler.parameters.size)
 
         methodHandler.parameters.forEachIndexed { i, parameter ->
-            val value = pathParameterValues[parameter.name]
+            val value = if (parameter.parameterType == FunctionParameter.ParamType.PATH_PARAM) {
+                pathParameterValues[parameter.name]
+            } else {
+                val list = queryStringDecoder.parameters()[parameter.name]
+
+                if (!list.isNullOrEmpty()) {
+                    list[0]
+                } else {
+                    parameter.default
+                }
+            }
 
             if (value != null && value.isNotEmpty()) {
                 parameters[i] = when {
-                    parameter.type == String::class.java -> value
-                    parameter.type.isPrimitive -> parsePrimitive(value, parameter.type)
+                    parameter.variableType == String::class.java -> value
+                    parameter.variableType.isPrimitive -> parsePrimitive(value, parameter.variableType)
                     else -> {
                         //TODO parse objects
                     }
                 }
+            } else if (parameter.required) {
+                throw ParameterException("Required parameter '${parameter.name}' missing, path '${request.uri()}'")
             }
         }
 
