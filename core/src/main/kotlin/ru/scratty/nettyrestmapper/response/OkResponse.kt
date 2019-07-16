@@ -1,24 +1,28 @@
 package ru.scratty.nettyrestmapper.response
 
-class OkResponse(
-    content: ByteArray
-): Response(ResponseStatus.OK, content) {
+import io.netty.buffer.Unpooled
 
-    constructor(content: String): this(content.toByteArray())
+class OkResponse: Response {
 
-    constructor(content: Byte): this(content.toString())
+    constructor(): super(ResponseStatus.OK)
 
-    constructor(content: Short): this(content.toString())
+    constructor(content: ByteArray): super(ResponseStatus.OK, Unpooled.copiedBuffer(content))
 
-    constructor(content: Int): this(content.toString())
+    constructor(content: String): super(ResponseStatus.OK, content.toByteArray())
 
-    constructor(content: Long): this(content.toString())
+    constructor(content: Byte): super(ResponseStatus.OK, content.toString())
 
-    constructor(content: Float): this(content.toString())
+    constructor(content: Short): super(ResponseStatus.OK, content.toString())
 
-    constructor(content: Double): this(content.toString())
+    constructor(content: Int): super(ResponseStatus.OK, content.toString())
 
-    constructor(content: Boolean): this(content.toString())
+    constructor(content: Long): super(ResponseStatus.OK, content.toString())
 
-    constructor(content: Collection<*>): this(content.toString())
+    constructor(content: Float): super(ResponseStatus.OK, content.toString())
+
+    constructor(content: Double): super(ResponseStatus.OK, content.toString())
+
+    constructor(content: Boolean): super(ResponseStatus.OK, content.toString())
+
+    constructor(content: Collection<*>): super(ResponseStatus.OK, content.toString())
 }
