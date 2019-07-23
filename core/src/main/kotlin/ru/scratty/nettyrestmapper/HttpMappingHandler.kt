@@ -9,6 +9,9 @@ import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder
 import org.slf4j.LoggerFactory
 import ru.scratty.nettyrestmapper.exception.FewMethodsHandleException
 import ru.scratty.nettyrestmapper.exception.ParameterException
+import ru.scratty.nettyrestmapper.exception.ParameterMissingException
+import ru.scratty.nettyrestmapper.response.Response
+import ru.scratty.nettyrestmapper.response.ResponseStatus
 
 
 class HttpMappingHandler(
@@ -34,12 +37,20 @@ class HttpMappingHandler(
 
         val response: FullHttpResponse = when {
             matchedMethodsHandlers.size > 1 -> throw FewMethodsHandleException(request.method().name(), request.uri())
-            matchedMethodsHandlers.isEmpty() -> DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_FOUND)
+            matchedMethodsHandlers.isEmpty() -> DefaultFullHttpResponse(
+                HttpVersion.HTTP_1_1,
+                HttpResponseStatus.NOT_FOUND
+            )
             else -> {
-                val methodHandler = matchedMethodsHandlers[0]
-                methodHandler
-                    .invoke(getArgsForInvoke(methodHandler, request))
-                    .createFullHttpResponse()
+                try {
+                    val methodHandler = matchedMethodsHandlers[0]
+                    methodHandler
+                        .invoke(getArgsForInvoke(methodHandler, request))
+                        .createFullHttpResponse()
+                } catch (parameterMissing: ParameterMissingException) {
+                    Response(ResponseStatus.BAD_REQUEST, parameterMissing.message!!)
+                        .createFullHttpResponse()
+                }
             }
         }
 
@@ -52,7 +63,8 @@ class HttpMappingHandler(
     override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
         log.error(cause.message, cause)
 
-        val channelFuture = ctx.writeAndFlush(DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR))
+        val channelFuture =
+            ctx.writeAndFlush(DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR))
         channelFuture.addListener(ChannelFutureListener.CLOSE)
     }
 
@@ -98,7 +110,7 @@ class HttpMappingHandler(
                     }
                 }
             } else if (parameter.required) {
-                throw ParameterException("Required parameter '${parameter.name}' missing, path '${request.uri()}'")
+                throw ParameterMissingException(parameter.name)
             }
         }
 
@@ -108,7 +120,7 @@ class HttpMappingHandler(
     }
 
     private fun parsePrimitive(value: String, type: Class<*>): Any? =
-        when(type) {
+        when (type) {
             Byte::class.java -> value.toByte()
             Short::class.java -> value.toShort()
             Int::class.java -> value.toInt()
