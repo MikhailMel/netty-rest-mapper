@@ -4,6 +4,8 @@ import io.netty.channel.ChannelFutureListener
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.handler.codec.http.*
+import io.netty.handler.codec.http.multipart.Attribute
+import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder
 import org.slf4j.LoggerFactory
 import ru.scratty.nettyrestmapper.exception.FewMethodsHandleException
 import ru.scratty.nettyrestmapper.exception.ParameterException
@@ -56,6 +58,7 @@ class HttpMappingHandler(
 
     private fun getArgsForInvoke(methodHandler: HttpMethodHandler, request: FullHttpRequest): Array<Any?>? {
         val queryStringDecoder = QueryStringDecoder(request.uri())
+        val postRequestDecoder = HttpPostRequestDecoder(request)
 
         val pathParameterValues = hashMapOf<String, String>()
         val matchedGroupValues = methodHandler.pathPattern.findAll(request.uri())
@@ -72,10 +75,15 @@ class HttpMappingHandler(
             val value = if (parameter.parameterType == FunctionParameter.ParamType.PATH_PARAM) {
                 pathParameterValues[parameter.name]
             } else {
+                val bodyParameter = postRequestDecoder.getBodyHttpData(parameter.name)
                 val list = queryStringDecoder.parameters()[parameter.name]
 
-                if (!list.isNullOrEmpty()) {
+                if (bodyParameter != null && !list.isNullOrEmpty()) {
+                    throw ParameterException("The '${parameter.name}' parameter is present in the body and in the request URI, path '${request.uri()}'")
+                } else if (!list.isNullOrEmpty()) {
                     list[0]
+                } else if (bodyParameter != null) {
+                    (bodyParameter as Attribute).value
                 } else {
                     parameter.default
                 }

@@ -1,6 +1,7 @@
 package ru.scratty.nettyrestmapper
 
 import ru.scratty.nettyrestmapper.annotation.GetMapping
+import ru.scratty.nettyrestmapper.annotation.PostMapping
 import ru.scratty.nettyrestmapper.annotation.QueryParam
 import ru.scratty.nettyrestmapper.annotation.RestController
 import ru.scratty.nettyrestmapper.response.OkResponse
@@ -29,4 +30,10 @@ class QueryParamController {
         @QueryParam(required = false) string: String?,
         @QueryParam(required = false) long: Long?
     ) = OkResponse("double: $double string: $string long: $long")
+
+    @PostMapping("/test5")
+    fun test5(
+        @QueryParam str1: String,
+        @QueryParam str2: String
+    ) = OkResponse("str1: $str1 str2: $str2")
 }
