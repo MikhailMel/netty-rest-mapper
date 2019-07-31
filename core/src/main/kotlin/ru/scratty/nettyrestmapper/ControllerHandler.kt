@@ -6,6 +6,7 @@ import ru.scratty.nettyrestmapper.annotation.*
 import ru.scratty.nettyrestmapper.exception.NumAnnotationsException
 import ru.scratty.nettyrestmapper.exception.ParameterException
 import kotlin.reflect.KFunction
+import kotlin.reflect.KParameter
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.functions
 import kotlin.reflect.jvm.isAccessible
@@ -52,7 +53,7 @@ class ControllerHandler(
                     ?: throw Exception("Not found HttpMethod for '${annotation.javaClass.name}' annotation")
 
                 val path = rootPath + annotation.javaClass.getMethod("path").invoke(annotation)
-                val parameters = parseParameters(path, function)
+                val parameters = parseParameters(path, function, httpMethod)
 
                 function.isAccessible = true
                 val methodHandler = HttpMethodHandler(
@@ -72,7 +73,7 @@ class ControllerHandler(
         return list
     }
 
-    private fun parseParameters(path: String, function: KFunction<*>): List<FunctionParameter> {
+    private fun parseParameters(path: String, function: KFunction<*>, httpMethod: HttpMethod): List<FunctionParameter> {
         val functionParameters = arrayListOf<FunctionParameter>()
 
         val pathParamNames = URL_PARAMS_REGEX.findAll(path)
@@ -80,57 +81,46 @@ class ControllerHandler(
             .toList()
         val pathParamNamesInFunc = arrayListOf<String>()
 
-        for (parameter in function.parameters) {
-            val pathParamAnnotation = parameter.findAnnotation<PathParam>()
-            val queryParamAnnotation = parameter.findAnnotation<QueryParam>()
+        var requestBodyAnnotationsCounter = 0
 
-            if (pathParamAnnotation == null && queryParamAnnotation == null) {
-                continue
+        for (parameter in function.parameters) {
+            var annotationsCounter = 0
+            var functionParameter = FunctionParameter()
+
+            parsePathParamAnnotation(parameter)?.let {
+                annotationsCounter++
+
+                functionParameter = it
+            }
+            parseQueryParamAnnotation(parameter)?.let {
+                annotationsCounter++
+
+                functionParameter = it
+            }
+            parseRequestBodyAnnotation(parameter, httpMethod, path)?.let {
+                annotationsCounter++
+                requestBodyAnnotationsCounter++
+
+                functionParameter = it
             }
 
-            if (pathParamAnnotation != null && queryParamAnnotation != null) {
+            if (annotationsCounter == 0) {
+                continue
+            } else if (annotationsCounter > 1) {
                 throw ParameterException(
                     "Multiple annotations for parameter '${parameter.name}' of function '${function.name}' with path '$path"
                 )
             }
 
-            var paramName = ""
-            var paramType = FunctionParameter.ParamType.PATH_PARAM
-            var required = true
-            var default = ""
+            if (functionParameter.parameterType == FunctionParameter.ParamType.PATH_PARAM) {
+                pathParamNamesInFunc.add(functionParameter.name)
 
-            pathParamAnnotation?.let {
-                paramName = it.name
-            }
-
-            queryParamAnnotation?.let {
-                paramName = it.name
-                paramType = FunctionParameter.ParamType.QUERY_PARAM
-                required = it.required
-                default = it.default
-            }
-
-            if (paramName.isEmpty() && parameter.name != null) {
-                paramName = parameter.name!!
-            }
-
-            if (paramType == FunctionParameter.ParamType.PATH_PARAM) {
-                pathParamNamesInFunc.add(paramName)
-
-                if (!pathParamNames.contains(paramName)) {
-                    throw ParameterException("Parameter '$paramName' isn't specified in the path '$path'")
+                if (!pathParamNames.contains(functionParameter.name)) {
+                    throw ParameterException("Parameter '${functionParameter.name}' isn't specified in the path '$path'")
                 }
             }
 
-            functionParameters.add(
-                FunctionParameter(
-                    paramName,
-                    parameter.type.jvmErasure.java,
-                    paramType,
-                    required,
-                    default
-                )
-            )
+            functionParameters.add(functionParameter)
         }
 
         for (pathParam in pathParamNames) {
@@ -141,6 +131,47 @@ class ControllerHandler(
 
         return functionParameters
     }
+
+    private fun parsePathParamAnnotation(parameter: KParameter): FunctionParameter? =
+        parameter.findAnnotation<PathParam>()?.let {
+            FunctionParameter(
+                parameter.getParameterName(it.name),
+                parameter.type.jvmErasure.java,
+                FunctionParameter.ParamType.PATH_PARAM
+            )
+        }
+
+    private fun parseQueryParamAnnotation(parameter: KParameter): FunctionParameter? =
+        parameter.findAnnotation<QueryParam>()?.let {
+            FunctionParameter(
+                parameter.getParameterName(it.name),
+                parameter.type.jvmErasure.java,
+                FunctionParameter.ParamType.QUERY_PARAM,
+                it.required,
+                it.default
+            )
+        }
+
+    private fun parseRequestBodyAnnotation(
+        parameter: KParameter,
+        httpMethod: HttpMethod,
+        path: String
+    ): FunctionParameter? =
+        parameter.findAnnotation<RequestBody>()?.let {
+            if (httpMethod != HttpMethod.POST && httpMethod != HttpMethod.PUT && httpMethod != HttpMethod.PATCH) {
+                throw ParameterException(
+                    "RequestBody annotation can be used only in POST, PUT or PATCH requests, path '$path'"
+                )
+            }
+
+            FunctionParameter(
+                parameter.name ?: "",
+                parameter.type.jvmErasure.java,
+                FunctionParameter.ParamType.REQUEST_BODY,
+                it.required,
+                it.default
+            )
+        }
 
     private fun findMappingAnnotation(function: KFunction<*>): Annotation? {
         val annotations = function.annotations
@@ -153,3 +184,5 @@ class ControllerHandler(
         }
     }
 }
+
+fun KParameter.getParameterName(name: String) = if (name.isEmpty()) this.name!! else name

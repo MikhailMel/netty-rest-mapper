@@ -10,7 +10,8 @@ fun main() {
                 SimpleMappingController(),
                 CheckResponseCodeController(),
                 PathParamController(),
-                QueryParamController()
+                QueryParamController(),
+                RequestBodyController()
             )
         )
     )

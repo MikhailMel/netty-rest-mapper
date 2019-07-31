@@ -12,6 +12,7 @@ import ru.scratty.nettyrestmapper.exception.ParameterException
 import ru.scratty.nettyrestmapper.exception.ParameterMissingException
 import ru.scratty.nettyrestmapper.response.Response
 import ru.scratty.nettyrestmapper.response.ResponseStatus
+import java.nio.charset.StandardCharsets
 
 
 class HttpMappingHandler(
@@ -86,7 +87,7 @@ class HttpMappingHandler(
         methodHandler.parameters.forEachIndexed { i, parameter ->
             val value = if (parameter.parameterType == FunctionParameter.ParamType.PATH_PARAM) {
                 pathParameterValues[parameter.name]
-            } else {
+            } else if (parameter.parameterType == FunctionParameter.ParamType.QUERY_PARAM) {
                 val bodyParameter = postRequestDecoder.getBodyHttpData(parameter.name)
                 val list = queryStringDecoder.parameters()[parameter.name]
 
@@ -99,6 +100,14 @@ class HttpMappingHandler(
                 } else {
                     parameter.default
                 }
+            } else {
+                val content = request.content().toString(StandardCharsets.UTF_8)
+
+                if (content.isNullOrEmpty()) {
+                    parameter.default
+                } else {
+                    content
+                }
             }
 
             if (value != null && value.isNotEmpty()) {
@@ -110,7 +119,7 @@ class HttpMappingHandler(
                     }
                 }
             } else if (parameter.required) {
-                throw ParameterMissingException(parameter.name)
+                throw ParameterMissingException(parameter)
             }
         }
 
