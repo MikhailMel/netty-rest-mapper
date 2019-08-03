@@ -105,10 +105,12 @@ class ControllerHandler(
             }
 
             if (annotationsCounter == 0) {
-                continue
+                throw ParameterException(
+                    "Missing annotation for parameter '${parameter.name}' of function '${function.name}' with path '$path'"
+                )
             } else if (annotationsCounter > 1) {
                 throw ParameterException(
-                    "Multiple annotations for parameter '${parameter.name}' of function '${function.name}' with path '$path"
+                    "Multiple annotations for parameter '${parameter.name}' of function '${function.name}' with path '$path'"
                 )
             }
 
