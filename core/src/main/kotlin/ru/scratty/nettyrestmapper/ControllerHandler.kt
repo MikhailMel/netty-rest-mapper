@@ -84,6 +84,10 @@ class ControllerHandler(
         var requestBodyAnnotationsCounter = 0
 
         for (parameter in function.parameters) {
+            if (parameter.kind != KParameter.Kind.VALUE) {
+                continue
+            }
+
             var annotationsCounter = 0
             var functionParameter = FunctionParameter()
 
