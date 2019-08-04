@@ -17,6 +17,8 @@ dependencies {
 
     implementation("io.netty", "netty-all", "4.1.37.Final")
 
+    implementation("com.google.code.gson", "gson", "2.8.5")
+
     implementation("ch.qos.logback", "logback-classic", "1.2.3")
 }
 

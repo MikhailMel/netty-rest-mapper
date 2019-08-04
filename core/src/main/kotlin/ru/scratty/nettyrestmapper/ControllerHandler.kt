@@ -2,16 +2,19 @@ package ru.scratty.nettyrestmapper
 
 import io.netty.handler.codec.http.HttpMethod
 import org.slf4j.LoggerFactory
-import ru.scratty.nettyrestmapper.annotation.*
+import ru.scratty.nettyrestmapper.annotation.mapping.*
+import ru.scratty.nettyrestmapper.annotation.parameter.PathParam
+import ru.scratty.nettyrestmapper.annotation.parameter.QueryParam
+import ru.scratty.nettyrestmapper.annotation.parameter.RequestBody
 import ru.scratty.nettyrestmapper.exception.NumAnnotationsException
 import ru.scratty.nettyrestmapper.exception.ParameterException
+import ru.scratty.nettyrestmapper.parameter.FunctionParameter
 import kotlin.reflect.KFunction
 import kotlin.reflect.KParameter
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.functions
 import kotlin.reflect.jvm.isAccessible
 import kotlin.reflect.jvm.javaMethod
-import kotlin.reflect.jvm.jvmErasure
 
 class ControllerHandler(
     private val controllers: List<Any>
@@ -89,7 +92,7 @@ class ControllerHandler(
             }
 
             var annotationsCounter = 0
-            var functionParameter = FunctionParameter()
+            var functionParameter = FunctionParameter(parameter)
 
             parsePathParamAnnotation(parameter)?.let {
                 annotationsCounter++
@@ -141,8 +144,8 @@ class ControllerHandler(
     private fun parsePathParamAnnotation(parameter: KParameter): FunctionParameter? =
         parameter.findAnnotation<PathParam>()?.let {
             FunctionParameter(
-                parameter.getParameterName(it.name),
-                parameter.type.jvmErasure.java,
+                parameter,
+                parameter.parameterNameOrDefault(it.name),
                 FunctionParameter.ParamType.PATH_PARAM
             )
         }
@@ -150,8 +153,8 @@ class ControllerHandler(
     private fun parseQueryParamAnnotation(parameter: KParameter): FunctionParameter? =
         parameter.findAnnotation<QueryParam>()?.let {
             FunctionParameter(
-                parameter.getParameterName(it.name),
-                parameter.type.jvmErasure.java,
+                parameter,
+                parameter.parameterNameOrDefault(it.name),
                 FunctionParameter.ParamType.QUERY_PARAM,
                 it.required,
                 it.default
@@ -171,8 +174,8 @@ class ControllerHandler(
             }
 
             FunctionParameter(
-                parameter.name ?: "",
-                parameter.type.jvmErasure.java,
+                parameter,
+                parameter.parameterNameOrDefault(""),
                 FunctionParameter.ParamType.REQUEST_BODY,
                 it.required,
                 it.default
@@ -191,4 +194,4 @@ class ControllerHandler(
     }
 }
 
-fun KParameter.getParameterName(name: String) = if (name.isEmpty()) this.name!! else name
+fun KParameter.parameterNameOrDefault(default: String) = if (default.isEmpty()) this.name!! else default

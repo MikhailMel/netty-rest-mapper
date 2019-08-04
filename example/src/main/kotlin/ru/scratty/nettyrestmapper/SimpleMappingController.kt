@@ -1,6 +1,6 @@
 package ru.scratty.nettyrestmapper
 
-import ru.scratty.nettyrestmapper.annotation.*
+import ru.scratty.nettyrestmapper.annotation.mapping.*
 import ru.scratty.nettyrestmapper.response.OkResponse
 
 @RestController("/simple")

@@ -11,7 +11,8 @@ fun main() {
                 CheckResponseCodeController(),
                 PathParamController(),
                 QueryParamController(),
-                RequestBodyController()
+                RequestBodyController(),
+                NewParameterParserController()
             )
         )
     )

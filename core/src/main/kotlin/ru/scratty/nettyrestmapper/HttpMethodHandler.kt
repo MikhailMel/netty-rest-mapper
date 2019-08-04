@@ -2,6 +2,7 @@ package ru.scratty.nettyrestmapper
 
 import io.netty.handler.codec.http.HttpMethod
 import org.slf4j.LoggerFactory
+import ru.scratty.nettyrestmapper.parameter.FunctionParameter
 import ru.scratty.nettyrestmapper.response.Response
 import ru.scratty.nettyrestmapper.response.ResponseStatus
 import java.lang.reflect.Method

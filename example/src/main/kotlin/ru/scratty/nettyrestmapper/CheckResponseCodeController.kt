@@ -1,8 +1,8 @@
 package ru.scratty.nettyrestmapper
 
-import ru.scratty.nettyrestmapper.annotation.GetMapping
-import ru.scratty.nettyrestmapper.annotation.PostMapping
-import ru.scratty.nettyrestmapper.annotation.RestController
+import ru.scratty.nettyrestmapper.annotation.mapping.GetMapping
+import ru.scratty.nettyrestmapper.annotation.mapping.PostMapping
+import ru.scratty.nettyrestmapper.annotation.mapping.RestController
 import ru.scratty.nettyrestmapper.response.OkResponse
 import ru.scratty.nettyrestmapper.response.Response
 import ru.scratty.nettyrestmapper.response.ResponseStatus

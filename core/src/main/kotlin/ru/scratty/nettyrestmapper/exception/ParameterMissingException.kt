@@ -1,6 +1,6 @@
 package ru.scratty.nettyrestmapper.exception
 
-import ru.scratty.nettyrestmapper.FunctionParameter
+import ru.scratty.nettyrestmapper.parameter.FunctionParameter
 
 class ParameterMissingException(parameter: FunctionParameter) : Exception(
     "Required ${if (parameter.parameterType == FunctionParameter.ParamType.REQUEST_BODY) {

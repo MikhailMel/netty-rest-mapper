@@ -1,6 +1,7 @@
 package ru.scratty.nettyrestmapper
 
-import ru.scratty.nettyrestmapper.annotation.*
+import ru.scratty.nettyrestmapper.annotation.mapping.*
+import ru.scratty.nettyrestmapper.annotation.parameter.PathParam
 import ru.scratty.nettyrestmapper.response.OkResponse
 import ru.scratty.nettyrestmapper.response.Response
 import ru.scratty.nettyrestmapper.response.ResponseStatus

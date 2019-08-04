@@ -1,5 +1,6 @@
 package ru.scratty.nettyrestmapper
 
+import com.google.gson.Gson
 import io.netty.channel.ChannelFutureListener
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.ChannelInboundHandlerAdapter
@@ -10,6 +11,7 @@ import org.slf4j.LoggerFactory
 import ru.scratty.nettyrestmapper.exception.FewMethodsHandleException
 import ru.scratty.nettyrestmapper.exception.ParameterException
 import ru.scratty.nettyrestmapper.exception.ParameterMissingException
+import ru.scratty.nettyrestmapper.parameter.FunctionParameter
 import ru.scratty.nettyrestmapper.response.Response
 import ru.scratty.nettyrestmapper.response.ResponseStatus
 import java.nio.charset.StandardCharsets
@@ -18,6 +20,12 @@ import java.nio.charset.StandardCharsets
 class HttpMappingHandler(
     private val httpMethodsHandlers: List<HttpMethodHandler>
 ) : ChannelInboundHandlerAdapter() {
+
+    private val gson = Gson()
+
+    val defaultParameterParser = fun(parameter: FunctionParameter, value: String): Any? {
+        return gson.fromJson(value, parameter.variableType)
+    }
 
     companion object {
         private val log = LoggerFactory.getLogger(HttpMappingHandler::class.java)
@@ -111,13 +119,7 @@ class HttpMappingHandler(
             }
 
             if (value != null && value.isNotEmpty()) {
-                parameters[i] = when {
-                    parameter.variableType == String::class.java -> value
-                    parameter.variableType.isPrimitive -> parsePrimitive(value, parameter.variableType)
-                    else -> {
-                        //TODO parse objects
-                    }
-                }
+                parameters[i] = defaultParameterParser(parameter, value)
             } else if (parameter.required) {
                 throw ParameterMissingException(parameter)
             }
@@ -127,17 +129,4 @@ class HttpMappingHandler(
 
         return parameters
     }
-
-    private fun parsePrimitive(value: String, type: Class<*>): Any? =
-        when (type) {
-            Byte::class.java -> value.toByte()
-            Short::class.java -> value.toShort()
-            Int::class.java -> value.toInt()
-            Long::class.java -> value.toLong()
-            Char::class.java -> value[0]
-            Float::class.java -> value.toFloat()
-            Double::class.java -> value.toDouble()
-            Boolean::class.java -> value.toBoolean()
-            else -> null
-        }
 }
