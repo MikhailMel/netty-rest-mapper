@@ -12,13 +12,15 @@ import ru.scratty.nettyrestmapper.exception.FewMethodsHandleException
 import ru.scratty.nettyrestmapper.exception.ParameterException
 import ru.scratty.nettyrestmapper.exception.ParameterMissingException
 import ru.scratty.nettyrestmapper.parameter.FunctionParameter
+import ru.scratty.nettyrestmapper.parameter.parser.ParameterParserFunction
 import ru.scratty.nettyrestmapper.response.Response
 import ru.scratty.nettyrestmapper.response.ResponseStatus
 import java.nio.charset.StandardCharsets
 
 
 class HttpMappingHandler(
-    private val httpMethodsHandlers: List<HttpMethodHandler>
+    private val httpMethodsHandlers: List<HttpMethodHandler>,
+    private val parameterParserFunctions: Map<Class<*>, ParameterParserFunction>
 ) : ChannelInboundHandlerAdapter() {
 
     private val gson = Gson()
@@ -119,7 +121,11 @@ class HttpMappingHandler(
             }
 
             if (value != null && value.isNotEmpty()) {
-                parameters[i] = defaultParameterParser(parameter, value)
+                parameters[i] = if (parameterParserFunctions.containsKey(parameter.variableType)) {
+                    parameterParserFunctions.getValue(parameter.variableType).invoke(parameter, value)
+                } else {
+                    defaultParameterParser(parameter, value)
+                }
             } else if (parameter.required) {
                 throw ParameterMissingException(parameter)
             }

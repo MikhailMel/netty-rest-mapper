@@ -13,10 +13,12 @@ import io.netty.handler.codec.http.HttpResponseEncoder
 import io.netty.handler.codec.http.cors.CorsConfigBuilder
 import io.netty.handler.codec.http.cors.CorsHandler
 import org.slf4j.LoggerFactory
+import ru.scratty.nettyrestmapper.parameter.parser.ParameterParsersHandler
 
 class Server(
     private val port: Int,
-    private val httpMethodsHandlers: List<HttpMethodHandler>
+    private val httpMethodsHandlers: List<HttpMethodHandler>,
+    private val parameterParsersHandler: ParameterParsersHandler
 ) {
 
     companion object {
@@ -25,7 +27,17 @@ class Server(
 
     private lateinit var channelFuture: ChannelFuture
 
-    constructor(port: Int, controllerHandler: ControllerHandler): this(port, controllerHandler.httpMethodsHandlers)
+    constructor(port: Int, controllerHandler: ControllerHandler) : this(
+        port,
+        controllerHandler.httpMethodsHandlers,
+        ParameterParsersHandler(emptyList())
+    )
+
+    constructor(
+        port: Int,
+        controllerHandler: ControllerHandler,
+        parameterParsersHandler: ParameterParsersHandler
+    ) : this(port, controllerHandler.httpMethodsHandlers, parameterParsersHandler)
 
     fun startServer() {
         val corsConfig = CorsConfigBuilder.forAnyOrigin()
@@ -46,7 +58,7 @@ class Server(
                         .addLast(HttpRequestDecoder())
                         .addLast(HttpObjectAggregator(Int.MAX_VALUE))
                         .addLast(CorsHandler(corsConfig))
-                        .addLast(HttpMappingHandler(httpMethodsHandlers))
+                        .addLast(HttpMappingHandler(httpMethodsHandlers, parameterParsersHandler.parameterParsers))
                 }
             })
             .option(ChannelOption.SO_BACKLOG, 500)
